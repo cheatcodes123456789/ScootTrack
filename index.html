@@ -1,0 +1,910 @@
+ScootTrack
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b0d10">
+<title>ScootTrack</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #0b0d10;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.app {
+    max-width: 520px;
+    margin: auto;
+    min-height: 100vh;
+    padding-bottom: 90px;
+}
+
+header {
+    padding: 25px 18px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 {
+    margin: 0;
+    font-size: 29px;
+}
+
+h2 {
+    font-size: 23px;
+}
+
+.screen {
+    display: none;
+    padding: 10px 16px;
+}
+
+.screen.active {
+    display: block;
+}
+
+.card {
+    background: #15191f;
+    border: 1px solid #252b33;
+    border-radius: 20px;
+    padding: 18px;
+    margin: 12px 0;
+}
+
+.speed {
+    font-size: 64px;
+    font-weight: 750;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.unit {
+    text-align: center;
+    color: #9aa3ad;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.stat {
+    background: #101419;
+    border-radius: 15px;
+    padding: 14px;
+}
+
+.label {
+    color: #9aa3ad;
+    font-size: 13px;
+}
+
+.stat b {
+    display: block;
+    font-size: 20px;
+    margin-top: 5px;
+}
+
+button {
+    font: inherit;
+}
+
+.primary {
+    width: 100%;
+    border: 0;
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 15px;
+    background: #63e6be;
+    color: #07120e;
+    font-weight: 750;
+    font-size: 17px;
+}
+
+.danger {
+    background: #ff6b6b;
+    color: #190606;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #252b33;
+}
+
+.row:last-child {
+    border-bottom: none;
+}
+
+input {
+    width: 100%;
+    background: #101419;
+    color: white;
+    border: 1px solid #252b33;
+    border-radius: 12px;
+    padding: 13px;
+    margin-top: 7px;
+}
+
+nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15,18,22,.95);
+    border-top: 1px solid #252b33;
+    display: flex;
+    justify-content: center;
+}
+
+nav button {
+    flex: 1;
+    max-width: 130px;
+    background: none;
+    border: 0;
+    color: #9aa3ad;
+    padding: 12px 4px 18px;
+    font-size: 12px;
+}
+
+nav button.active {
+    color: #63e6be;
+}
+
+.icon {
+    display: block;
+    font-size: 21px;
+    margin-bottom: 3px;
+}
+
+.ok {
+    color: #63e6be;
+}
+
+.notice {
+    color: #9aa3ad;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#map {
+    height: 250px;
+    border-radius: 16px;
+    background: #0d1116;
+    border: 1px solid #252b33;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9aa3ad;
+    overflow: hidden;
+}
+
+svg {
+    width: 100%;
+    height: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+    <h1>🛴 ScootTrack</h1>
+    <span id="gpsState" class="ok">● GPS</span>
+</header>
+
+<!-- STARTSEITE -->
+<section id="home" class="screen active">
+
+    <div class="card">
+
+        <div class="speed" id="speed">0.0</div>
+        <div class="unit">km/h</div>
+
+        <div class="grid">
+
+            <div class="stat">
+                <span class="label">Akku</span>
+                <b>78 %</b>
+            </div>
+
+            <div class="stat">
+                <span class="label">Gesamtstrecke</span>
+                <b id="totalDistance">0.0 km</b>
+            </div>
+
+            <div class="stat">
+                <span class="label">Fahrten</span>
+                <b id="rideCount">0</b>
+            </div>
+
+            <div class="stat">
+                <span class="label">Ø Geschwindigkeit</span>
+                <b id="avgSpeed">0.0 km/h</b>
+            </div>
+
+        </div>
+
+        <button class="primary" onclick="startRide()">
+            Fahrt starten
+        </button>
+
+    </div>
+
+    <div class="card">
+        <strong id="scooterNameHome">Mein Scooter</strong>
+        <p>Xiaomi Scooter 5 Max / 6 Pro</p>
+    </div>
+
+</section>
+
+
+<!-- FAHRT -->
+<section id="ride" class="screen">
+
+    <h2>Aktuelle Fahrt</h2>
+
+    <div class="card">
+
+        <div class="speed" id="rideSpeed">0.0</div>
+        <div class="unit">km/h</div>
+
+        <div class="grid">
+
+            <div class="stat">
+                <span class="label">Strecke</span>
+                <b id="rideDistance">0.00 km</b>
+            </div>
+
+            <div class="stat">
+                <span class="label">Fahrzeit</span>
+                <b id="rideTime">00:00</b>
+            </div>
+
+        </div>
+
+        <div id="map">
+            GPS-Aufzeichnung wird gestartet …
+        </div>
+
+        <button class="primary danger" onclick="stopRide()">
+            Fahrt beenden
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- STATISTIK -->
+<section id="stats" class="screen">
+
+    <h2>Statistik</h2>
+
+    <div class="grid">
+
+        <div class="stat">
+            <span class="label">Gesamtstrecke</span>
+            <b id="sTotal">0.0 km</b>
+        </div>
+
+        <div class="stat">
+            <span class="label">Fahrten</span>
+            <b id="sCount">0</b>
+        </div>
+
+        <div class="stat">
+            <span class="label">Längste Fahrt</span>
+            <b id="sLongest">0.0 km</b>
+        </div>
+
+        <div class="stat">
+            <span class="label">Ø Geschwindigkeit</span>
+            <b id="sAvg">0.0 km/h</b>
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="label">
+            Letzte Fahrten
+        </div>
+
+        <div id="history">
+            Noch keine Fahrten gespeichert.
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- SCOOTER -->
+<section id="scooter" class="screen">
+
+    <h2>Scooter</h2>
+
+    <div class="card">
+
+        <div class="label">
+            Name
+        </div>
+
+        <input
+            id="scooterName"
+            value="Mein Scooter"
+            onchange="saveName()"
+        >
+
+        <div class="row">
+            <span>Modell</span>
+            <b>Xiaomi 5 Max / 6 Pro</b>
+        </div>
+
+        <div class="row">
+            <span>Status</span>
+            <b class="ok">Bereit</b>
+        </div>
+
+        <div class="row">
+            <span>Akku</span>
+            <b>78 %</b>
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Wartung</h3>
+
+        <div class="row">
+            <span>Reifen</span>
+            <b>Prüfen</b>
+        </div>
+
+        <div class="row">
+            <span>Bremsen</span>
+            <b>Prüfen</b>
+        </div>
+
+    </div>
+
+
+    <div class="card notice">
+
+        ScootTrack verwendet GPS für Geschwindigkeit,
+        Strecke und Fahrten.
+
+        Die App verändert keine Geschwindigkeits-
+        oder Sicherheitsbegrenzungen des Scooters.
+
+    </div>
+
+</section>
+
+
+<!-- NAVIGATION -->
+<nav>
+
+    <button
+        class="active"
+        onclick="show('home', this)"
+    >
+        <span class="icon">⌂</span>
+        Start
+    </button>
+
+    <button
+        onclick="show('ride', this)"
+    >
+        <span class="icon">▶</span>
+        Fahrt
+    </button>
+
+    <button
+        onclick="show('stats', this)"
+    >
+        <span class="icon">▥</span>
+        Statistik
+    </button>
+
+    <button
+        onclick="show('scooter', this)"
+    >
+        <span class="icon">🛴</span>
+        Scooter
+    </button>
+
+</nav>
+
+</div>
+
+
+<script>
+
+let rides =
+    JSON.parse(
+        localStorage.getItem("scoottrack_rides") || "[]"
+    );
+
+let watchId = null;
+let startTime = 0;
+let timer = null;
+let last = null;
+let distance = 0;
+let speeds = [];
+let path = [];
+
+
+const $ = id =>
+    document.getElementById(id);
+
+
+function show(id, button) {
+
+    document
+        .querySelectorAll(".screen")
+        .forEach(x => x.classList.remove("active"));
+
+    $(id).classList.add("active");
+
+    document
+        .querySelectorAll("nav button")
+        .forEach(x => x.classList.remove("active"));
+
+    button.classList.add("active");
+
+    updateStats();
+}
+
+
+function distanceBetween(a, b) {
+
+    const R = 6371000;
+
+    const rad = Math.PI / 180;
+
+    const dLat =
+        (b.lat - a.lat) * rad;
+
+    const dLon =
+        (b.lon - a.lon) * rad;
+
+    const x =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(a.lat * rad) *
+        Math.cos(b.lat * rad) *
+        Math.sin(dLon / 2) ** 2;
+
+    return 2 *
+        R *
+        Math.asin(Math.sqrt(x));
+}
+
+
+function gps(position) {
+
+    const coords = position.coords;
+
+    let speed =
+        coords.speed == null
+            ? 0
+            : coords.speed * 3.6;
+
+
+    if (last) {
+
+        const d =
+            distanceBetween(
+                last,
+                {
+                    lat: coords.latitude,
+                    lon: coords.longitude
+                }
+            );
+
+        if (d < 1000) {
+
+            distance += d;
+
+            speeds.push(speed);
+
+        }
+
+    }
+
+
+    last = {
+        lat: coords.latitude,
+        lon: coords.longitude
+    };
+
+
+    path.push([
+        coords.latitude,
+        coords.longitude
+    ]);
+
+
+    $("speed").textContent =
+        speed.toFixed(1);
+
+    $("rideSpeed").textContent =
+        speed.toFixed(1);
+
+    $("rideDistance").textContent =
+        (distance / 1000).toFixed(2) + " km";
+
+
+    drawPath();
+}
+
+
+function drawPath() {
+
+    if (path.length < 2) return;
+
+
+    let minLat =
+        Math.min(...path.map(x => x[0]));
+
+    let maxLat =
+        Math.max(...path.map(x => x[0]));
+
+    let minLon =
+        Math.min(...path.map(x => x[1]));
+
+    let maxLon =
+        Math.max(...path.map(x => x[1]));
+
+
+    const width = 320;
+    const height = 230;
+    const padding = 20;
+
+    const dx =
+        maxLon - minLon || 0.0001;
+
+    const dy =
+        maxLat - minLat || 0.0001;
+
+
+    const points =
+        path.map(x => {
+
+            const px =
+                padding +
+                ((x[1] - minLon) / dx) *
+                (width - padding * 2);
+
+            const py =
+                height -
+                padding -
+                ((x[0] - minLat) / dy) *
+                (height - padding * 2);
+
+            return `${px},${py}`;
+
+        }).join(" ");
+
+
+    $("map").innerHTML = `
+        <svg viewBox="0 0 320 230">
+            <polyline
+                points="${points}"
+                fill="none"
+                stroke="#63e6be"
+                stroke-width="5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            />
+        </svg>
+    `;
+}
+
+
+function startRide() {
+
+    if (!navigator.geolocation) {
+
+        alert(
+            "GPS wird von diesem Browser nicht unterstützt."
+        );
+
+        return;
+    }
+
+
+    distance = 0;
+    speeds = [];
+    path = [];
+    last = null;
+
+    startTime = Date.now();
+
+
+    $("rideDistance").textContent =
+        "0.00 km";
+
+    $("rideTime").textContent =
+        "00:00";
+
+    $("map").textContent =
+        "GPS-Aufzeichnung wird gestartet …";
+
+
+    show(
+        "ride",
+        document.querySelectorAll("nav button")[1]
+    );
+
+
+    watchId =
+        navigator.geolocation.watchPosition(
+
+            gps,
+
+            error => {
+
+                $("gpsState").textContent =
+                    "GPS ⚠";
+
+                alert(
+                    "GPS konnte nicht gelesen werden. " +
+                    "Bitte Standortzugriff erlauben."
+                );
+
+            },
+
+            {
+                enableHighAccuracy: true,
+                maximumAge: 1000,
+                timeout: 10000
+            }
+        );
+
+
+    timer =
+        setInterval(() => {
+
+            const seconds =
+                Math.floor(
+                    (Date.now() - startTime) / 1000
+                );
+
+
+            $("rideTime").textContent =
+
+                String(
+                    Math.floor(seconds / 60)
+                ).padStart(2, "0")
+
+                + ":" +
+
+                String(
+                    seconds % 60
+                ).padStart(2, "0");
+
+        }, 500);
+}
+
+
+function stopRide() {
+
+    if (watchId !== null) {
+
+        navigator.geolocation.clearWatch(
+            watchId
+        );
+
+    }
+
+    clearInterval(timer);
+
+
+    const seconds =
+        (Date.now() - startTime) / 1000;
+
+
+    const average =
+        speeds.length
+            ? speeds.reduce(
+                (a, b) => a + b,
+                0
+              ) / speeds.length
+            : 0;
+
+
+    if (distance > 0) {
+
+        rides.unshift({
+
+            date:
+                new Date()
+                    .toLocaleString("de-DE"),
+
+            distance:
+                distance / 1000,
+
+            seconds:
+                seconds,
+
+            average:
+                average
+
+        });
+
+    }
+
+
+    localStorage.setItem(
+        "scoottrack_rides",
+        JSON.stringify(rides)
+    );
+
+
+    updateStats();
+
+
+    show(
+        "home",
+        document.querySelectorAll("nav button")[0]
+    );
+}
+
+
+function updateStats() {
+
+    const total =
+        rides.reduce(
+            (a, r) => a + r.distance,
+            0
+        );
+
+
+    const count =
+        rides.length;
+
+
+    const longest =
+        Math.max(
+            0,
+            ...rides.map(r => r.distance)
+        );
+
+
+    const totalSeconds =
+        rides.reduce(
+            (a, r) => a + r.seconds,
+            0
+        );
+
+
+    const weighted =
+        rides.reduce(
+            (a, r) =>
+                a + r.average * r.seconds,
+            0
+        );
+
+
+    const average =
+        totalSeconds
+            ? weighted / totalSeconds
+            : 0;
+
+
+    $("totalDistance").textContent =
+        total.toFixed(1) + " km";
+
+    $("rideCount").textContent =
+        count;
+
+    $("avgSpeed").textContent =
+        average.toFixed(1) + " km/h";
+
+
+    $("sTotal").textContent =
+        total.toFixed(1) + " km";
+
+    $("sCount").textContent =
+        count;
+
+    $("sLongest").textContent =
+        longest.toFixed(1) + " km";
+
+    $("sAvg").textContent =
+        average.toFixed(1) + " km/h";
+
+
+    if (count === 0) {
+
+        $("history").textContent =
+            "Noch keine Fahrten gespeichert.";
+
+        return;
+    }
+
+
+    $("history").innerHTML =
+        rides
+        .slice(0, 8)
+        .map(r => `
+
+            <div class="row">
+
+                <span>
+                    ${r.date}
+                    <br>
+                    <small>
+                        ${Math.floor(r.seconds / 60)}
+                        min · Ø
+                        ${r.average.toFixed(1)}
+                        km/h
+                    </small>
+                </span>
+
+                <b>
+                    ${r.distance.toFixed(2)}
+                    km
+                </b>
+
+            </div>
+
+        `)
+        .join("");
+}
+
+
+function saveName() {
+
+    const name =
+        $("scooterName").value;
+
+    localStorage.setItem(
+        "scoottrack_name",
+        name
+    );
+
+    $("scooterNameHome").textContent =
+        name;
+}
+
+
+const savedName =
+    localStorage.getItem(
+        "scoottrack_name"
+    );
+
+
+if (savedName) {
+
+    $("scooterName").value =
+        savedName;
+
+    $("scooterNameHome").textContent =
+        savedName;
+}
+
+
+updateStats();
+
+</script>
+
+</body>
+</html>
